@@ -1,22 +1,20 @@
 use glam::Vec3;
+use crate::camera::Camera;
 
 mod image;
 mod rays;
+mod camera;
 
 // in: x, y in range [0, 1]
-fn calc_pixel( x: f32, y: f32, world: & rays::World ) -> image::Color {
+fn calc_pixel( x: f32, y: f32, camera: & Camera, world: & rays::World ) -> image::Color {
 
-    let mut cam_pos = Vec3::new( 0., 1.5, -2. );
-    let mut pix_pos = Vec3::new( x * 2. - 1., -y * 2., 0. );
-    let mut direction = (pix_pos - Vec3::new( 0., 0., -8.0 )).normalize();
-
-    let ray = rays::Ray { origin: cam_pos + pix_pos, direction };
-
+    let ray = camera.get_ray( x, y );
     let hit = world.cast( ray );
 
-    let mut col = Vec3::new( 0., 0., 0. );
+    let mut col = Vec3::new( 0.2, 0.2, 0.2 );
     if let Some( hit ) = hit {
-        col = hit.shape.material().color
+        col = hit.shape.material().color;
+        // col = hit.normal;
     }
 
     // Map the color to [0, 255]
@@ -29,17 +27,33 @@ fn calc_pixel( x: f32, y: f32, world: & rays::World ) -> image::Color {
 
 fn main() {
 
-    let width = 500;
-    let height = 500;
+    let width = 512;
+    let height = 512;
     let mut color_sink = image::ColorSink::new(width, height);
+    let camera = camera::Camera::new(
+        Vec3::new( 0., 0., -4.5 ),
+        Vec3::new( 0., 0., 1. ).normalize(),
+        Vec3::new( 0., 1., 0. ).normalize(),
+        90.,
+        width as f32 / height as f32,
+        1.
+    );
 
     let world = rays::World::new();
 
+    let total_pixels = width * height;
+    let time = std::time::Instant::now();
+    println!("Rendering {} pixels", total_pixels);
     for x in 0..(width) {
         for y in 0..(height) {
-            color_sink.set_pixel(x, y, calc_pixel(x as f32 / width as f32, y as f32 / width as f32, & world ));
+            color_sink.set_pixel(x, y, calc_pixel(x as f32 / width as f32, y as f32 / width as f32, & camera, & world ));
+        }
+        if x % 10 == 0
+        {
+            println!("{:.0}%", (x * height) as f32 / total_pixels as f32 * 100. );
         }
     }
+    println!("Done in {:.2} seconds", time.elapsed().as_secs_f32() );
 
     image::write_png_image( color_sink );
 }

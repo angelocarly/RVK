@@ -3,7 +3,9 @@ use glam::Vec3;
 pub struct Ray {
     pub origin: Vec3,
     pub direction: Vec3,
-    pub reflect_count: u32
+    pub reflect_count: u32,
+    pub cum_length: f32,
+    pub weigth: f32
 }
 
 pub struct Camera {
@@ -34,6 +36,6 @@ impl Camera {
         let pix_pos = self.position + self.near_plane * self.direction + self.right * x + self.up * y;
 
         let direction = (pix_pos - self.position).normalize();
-        Ray { origin: self.position, direction, reflect_count: 0 }
+        Ray { origin: self.position, direction, reflect_count: 0, cum_length: 0., weigth: 0. }
     }
 }
